@@ -1,0 +1,7 @@
+# LF in the repository and in the checkout, on every platform.
+#
+# This is not only tidiness. The portfolio's drift test re-cuts the seven marked passages from
+# the live essay and compares them byte-for-byte against `fixtures/passages/`. If Git rewrote
+# line endings on checkout, that comparison would fail on Windows and pass on Linux, and a test
+# whose result depends on the developer's operating system is not evidence of anything.
+* text=auto eol=lf

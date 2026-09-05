@@ -1,0 +1,56 @@
+{
+  "name": "@jstiltner/interactive-mirror",
+  "version": "0.2.0",
+  "description": "A reader-behaviour mirror that shows its own evidence: observations, weak claims, and the rules that produced them. Companion artifact to the essay \"The Archive That Cites Itself\".",
+  "license": "MIT",
+  "author": "Jason Stiltner",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jstiltner/interactive-mirror.git"
+  },
+  "homepage": "https://github.com/jstiltner/interactive-mirror#readme",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./testing": "./testing/index.ts",
+    "./tooling": "./tools/passage-text.ts",
+    "./mirror.css": "./src/ui/mirror.css"
+  },
+  "files": [
+    "src",
+    "tools",
+    "testing",
+    "fixtures",
+    "README.md",
+    "LICENSE"
+  ],
+  "peerDependencies": {
+    "react": "^18.2.0 || ^19.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "@types/react": "^19.2.0",
+    "@typescript-eslint/eslint-plugin": "^8.44.0",
+    "@typescript-eslint/parser": "^8.44.0",
+    "eslint": "^9.35.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "react": "^19.2.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0",
+    "vitest": "^2.1.9"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src tools testing test",
+    "test": "vitest run",
+    "generate:source-spans": "tsx tools/generate-source-spans.ts",
+    "generate:ruleset-digest": "tsx tools/generate-ruleset-digest.ts"
+  },
+  "keywords": [
+    "user-modeling",
+    "provenance",
+    "epistemics",
+    "privacy",
+    "react"
+  ]
+}

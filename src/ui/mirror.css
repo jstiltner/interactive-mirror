@@ -1,0 +1,416 @@
+/**
+ * The mirror's entire stylesheet.
+ *
+ * Every value a host might want to change is a custom property in the `--mirror-*` namespace,
+ * declared once below with neutral defaults. A host maps its own palette by redeclaring those
+ * nine properties; it never has to override a rule, and this file never has to know what the
+ * host's design system is called.
+ *
+ * The defaults are the palette of the essay this was extracted from, so a consumer who imports
+ * the stylesheet and maps nothing still gets a coherent panel rather than unstyled markup.
+ *
+ * Line heights are set explicitly rather than inherited. The panel is embedded in long-form
+ * prose, which typically runs a loose body leading; letting that cascade into a dense list of
+ * observations would space it like an essay when it is a table of findings.
+ */
+
+:root {
+  --mirror-bg: #ffffff;
+  --mirror-header-bg: rgba(249, 250, 251, 0.6);
+  --mirror-text: #1a1a1a;
+  --mirror-text-secondary: #525252;
+  --mirror-muted: #737373;
+  --mirror-border: #e5e5e5;
+  --mirror-accent: #0f766e;
+  --mirror-accent-hover: #0d9488;
+  --mirror-accent-contrast: #ffffff;
+  --mirror-font: inherit;
+  --mirror-font-mono: ui-monospace, "IBM Plex Mono", SFMono-Regular, Menlo, monospace;
+}
+
+/* --- frame ------------------------------------------------------------------------- */
+
+.mirror {
+  font-family: var(--mirror-font);
+  border: 1px solid var(--mirror-border);
+  border-radius: 0.5rem;
+  background: var(--mirror-bg);
+  overflow: hidden;
+}
+
+.mirror__header {
+  padding: 1rem;
+  border-bottom: 1px solid var(--mirror-border);
+  background: var(--mirror-header-bg);
+}
+
+.mirror__title {
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--mirror-text);
+  margin: 0 0 0.25rem;
+}
+
+.mirror__lede {
+  font-size: 0.75rem;
+  line-height: 1.625;
+  color: var(--mirror-muted);
+  margin: 0;
+}
+
+.mirror__lede strong {
+  font-weight: 500;
+  color: var(--mirror-text);
+}
+
+.mirror__body {
+  padding: 1rem;
+}
+
+.mirror__body > * + * {
+  margin-top: 1.5rem;
+}
+
+@media (min-width: 640px) {
+  .mirror__header {
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+  }
+
+  .mirror__body {
+    padding: 1.25rem;
+  }
+}
+
+/* --- text ------------------------------------------------------------------------- */
+
+.mirror-heading {
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1rem;
+  color: var(--mirror-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  margin: 0 0 0.5rem;
+}
+
+.mirror-prose {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--mirror-text-secondary);
+  margin: 0;
+}
+
+.mirror-prose--lead {
+  font-weight: 500;
+  color: var(--mirror-text);
+  margin-bottom: 0.25rem;
+}
+
+.mirror-note {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--mirror-muted);
+  margin: 0;
+}
+
+.mirror-note--fine {
+  font-size: 0.625rem;
+  line-height: 0.875rem;
+}
+
+.mirror-list {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--mirror-text-secondary);
+  list-style: disc;
+  padding-left: 1.25rem;
+  margin: 0;
+}
+
+.mirror-list > li + li {
+  margin-top: 0.25rem;
+}
+
+.mirror-stack > * + * {
+  margin-top: 1rem;
+}
+
+/* Utility margins, spelled out rather than inlined, so the component files carry structure
+   and this file carries appearance. */
+.mirror-mt-2 {
+  margin-top: 0.5rem;
+}
+.mirror-mt-3 {
+  margin-top: 0.75rem;
+}
+.mirror-mb-2 {
+  margin-bottom: 0.5rem;
+}
+.mirror-mb-3 {
+  margin-bottom: 0.75rem;
+}
+.mirror-mb-4 {
+  margin-bottom: 1rem;
+}
+
+/* --- controls --------------------------------------------------------------------- */
+
+.mirror-button {
+  font: inherit;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  background: none;
+  border: 1px solid var(--mirror-border);
+  border-radius: 0.25rem;
+  color: var(--mirror-text-secondary);
+  min-height: 2.25rem;
+  padding: 0.25rem 0.75rem;
+  cursor: pointer;
+  transition: color 150ms, background-color 150ms, border-color 150ms;
+}
+
+.mirror-button:hover:not(:disabled) {
+  border-color: var(--mirror-accent);
+  color: var(--mirror-accent);
+}
+
+/*
+ * §21 asks for the same rules on a phone. A 2.75rem target is the smallest thing a thumb hits
+ * reliably, and the two controls that decide something — revealing the reflection, and the
+ * disabled shell standing in for it — are sized for that rather than for the text they hold.
+ */
+.mirror-button--primary,
+.mirror-button--inert {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 500;
+  min-height: 2.75rem;
+  padding: 0.5rem 1rem;
+}
+
+.mirror-button--primary {
+  border-color: var(--mirror-accent);
+  color: var(--mirror-accent);
+}
+
+.mirror-button--primary:hover {
+  background: var(--mirror-accent);
+  color: var(--mirror-accent-contrast);
+}
+
+.mirror-button--inert {
+  color: var(--mirror-muted);
+  cursor: not-allowed;
+}
+
+.mirror-button--link {
+  border: none;
+  border-radius: 0;
+  min-height: 0;
+  padding: 0;
+  color: var(--mirror-accent);
+}
+
+.mirror-button--link:hover:not(:disabled) {
+  color: var(--mirror-accent);
+  text-decoration: underline;
+}
+
+.mirror-responses {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mirror-button {
+    transition: none;
+  }
+}
+
+/* --- claims ----------------------------------------------------------------------- */
+
+.mirror-claims {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.mirror-claims > li + li {
+  margin-top: 0.75rem;
+}
+
+.mirror-claim {
+  border: 1px solid var(--mirror-border);
+  border-radius: 0.25rem;
+  padding: 0.75rem;
+}
+
+.mirror-claim__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  column-gap: 0.75rem;
+  row-gap: 0.5rem;
+}
+
+.mirror-claim__statement {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--mirror-text);
+  font-style: italic;
+  flex: 1 1 0%;
+  min-width: 0;
+  margin: 0;
+}
+
+/*
+ * §22: confidence is never carried by colour alone. The tier is spelled out in the text of this
+ * badge, and the border and tint only repeat what the word already says — which is also why the
+ * two tiers differ in wording first and hue second.
+ */
+.mirror-claim__confidence {
+  flex-shrink: 0;
+  font-family: var(--mirror-font-mono);
+  font-size: 0.625rem;
+  line-height: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  padding: 0.125rem 0.5rem;
+  border: 1px solid var(--mirror-border);
+  border-radius: 0.25rem;
+  color: var(--mirror-muted);
+}
+
+.mirror-claim__confidence[data-confidence="moderate"] {
+  border-color: color-mix(in srgb, var(--mirror-accent) 40%, transparent);
+  background: color-mix(in srgb, var(--mirror-accent) 5%, transparent);
+  color: var(--mirror-accent);
+}
+
+.mirror-claim__detail {
+  margin-top: 0.5rem;
+  border-radius: 0.25rem;
+}
+
+.mirror-claim__detail > * + * {
+  margin-top: 0.75rem;
+}
+
+.mirror-claim__detail:focus {
+  outline: none;
+}
+
+.mirror-claim__detail:focus-visible {
+  outline: 1px solid var(--mirror-accent);
+  outline-offset: 2px;
+}
+
+.mirror-detail {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--mirror-text-secondary);
+}
+
+.mirror-detail__title {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 500;
+  color: var(--mirror-text);
+  margin: 0;
+}
+
+.mirror-detail p {
+  margin: 0.25rem 0 0;
+}
+
+.mirror-detail__aside {
+  color: var(--mirror-muted);
+}
+
+.mirror-detail__list {
+  list-style: disc;
+  padding-left: 1rem;
+  margin: 0.25rem 0 0;
+}
+
+.mirror-detail__list > li + li {
+  margin-top: 0.125rem;
+}
+
+.mirror-claim__history {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--mirror-border);
+}
+
+.mirror-claim__history-lead {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 500;
+  color: var(--mirror-text);
+  margin: 0 0 0.25rem;
+}
+
+.mirror-claim__history-list {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--mirror-text-secondary);
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.mirror-claim__history-list > li + li {
+  margin-top: 0.125rem;
+}
+
+.mirror-claim__history-list strong {
+  font-weight: 500;
+  color: var(--mirror-text);
+}
+
+/* --- rules disclosure ------------------------------------------------------------- */
+
+.mirror-rules {
+  padding-top: 1rem;
+  border-top: 1px solid var(--mirror-border);
+}
+
+.mirror-rules__body {
+  margin-top: 0.75rem;
+}
+
+.mirror-rules__body > * + * {
+  margin-top: 0.75rem;
+}
+
+.mirror-rules__list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.mirror-rules__list > li + li {
+  margin-top: 0.5rem;
+}
+
+.mirror-rule {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--mirror-text-secondary);
+}
+
+.mirror-rule__inference {
+  font-style: italic;
+  color: var(--mirror-text);
+}
+
+.mirror-rule__ceiling {
+  color: var(--mirror-muted);
+}
