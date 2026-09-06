@@ -252,6 +252,22 @@ Source-only, on purpose: there is no build step to hide anything in, and a reade
 
 Import `mirror.css` and map the `--mirror-*` custom properties to your own tokens.
 
+Two exports rather than one, for a reason worth knowing about. The instrumentation has to start when the reader arrives, not when the panel finishes loading, or the Mirror reports on whichever part of the session it happened to be present for. The panel itself should not be paid for by a reader who came for the argument rather than the demo. So:
+
+```tsx
+// eager: measurement, and the inert shell shown until the panel arrives
+import { MirrorShell, Passage, useMirrorInstrumentation } from "@jstiltner/interactive-mirror";
+// deferred: the rule table, the claim engine, the panel
+const MirrorPanel = dynamic(() => import("@jstiltner/interactive-mirror/panel"), {
+  ssr: false,
+  loading: () => <MirrorShell identity={identity} />,
+});
+```
+
+`./panel` is a separate entry point so the split is a property of the module graph rather than a hope about tree-shaking. Both paths resolve the same `session.ts`, so there is exactly one event log.
+
+`MirrorPanel` and `MirrorShell` both take a **required** `identity` prop. A host that forgets it fails `tsc`, which is deliberate — an optional build identity would degrade to a panel whose audit links go nowhere, and a broken link looks like verification in a way an absent one does not.
+
 ## Documents
 
 - [`docs/spec-v0.2.md`](docs/spec-v0.2.md) — the authoritative specification, committed as written.

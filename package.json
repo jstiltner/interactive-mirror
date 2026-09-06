@@ -1,6 +1,6 @@
 {
   "name": "@jstiltner/interactive-mirror",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "A reader-behaviour mirror that shows its own evidence: observations, weak claims, and the rules that produced them. Companion artifact to the essay \"The Archive That Cites Itself\".",
   "license": "MIT",
   "author": "Jason Stiltner",
@@ -12,10 +12,14 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./panel": "./src/ui/MirrorPanel.tsx",
     "./testing": "./testing/index.ts",
     "./tooling": "./tools/passage-text.ts",
     "./mirror.css": "./src/ui/mirror.css"
   },
+  "sideEffects": [
+    "**/*.css"
+  ],
   "files": [
     "src",
     "tools",
