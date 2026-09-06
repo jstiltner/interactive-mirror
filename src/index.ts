@@ -35,6 +35,10 @@ export type {
 
 export { THRESHOLDS } from "./thresholds";
 export { PACKAGE_VERSION, RULESET_VERSION } from "./version";
+export { describeIdentity, ruleSourceUrl } from "./identity";
+export type { MirrorBuildIdentity, MirrorIdentity } from "./identity";
+export { SOURCE_SPANS } from "./generated/source-spans";
+export type { SourceSpan } from "./generated/source-spans";
 export {
   PASSAGE_MANIFEST_VERSION,
   passageManifest,

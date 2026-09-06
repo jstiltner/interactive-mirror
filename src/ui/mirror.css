@@ -414,3 +414,69 @@
 .mirror-rule__ceiling {
   color: var(--mirror-muted);
 }
+
+/* --- provenance and build identity (§41) ------------------------------------------ */
+
+.mirror-source-link {
+  font-family: var(--mirror-font-mono);
+  font-size: 0.625rem;
+  color: var(--mirror-accent);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.mirror-source-link:hover {
+  text-decoration: underline;
+}
+
+/*
+ * Always visible, never prominent. §41 wants a reader to be able to get from a claim to the exact
+ * source without hunting for the way in, and a footer they have to open first is a way in they
+ * have to already know about.
+ */
+.mirror__identity {
+  padding: 0.5rem 1rem;
+  border-top: 1px solid var(--mirror-border);
+  font-family: var(--mirror-font-mono);
+  font-size: 0.625rem;
+  line-height: 1.4;
+  color: var(--mirror-muted);
+  overflow-wrap: anywhere;
+}
+
+.mirror__identity a {
+  color: var(--mirror-accent);
+  text-decoration: none;
+}
+
+.mirror__identity a:hover {
+  text-decoration: underline;
+}
+
+@media (min-width: 640px) {
+  .mirror__identity {
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+  }
+}
+
+.mirror-identity-list {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.75rem;
+  row-gap: 0.125rem;
+  font-family: var(--mirror-font-mono);
+  font-size: 0.625rem;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.mirror-identity-list dt {
+  color: var(--mirror-muted);
+}
+
+.mirror-identity-list dd {
+  margin: 0;
+  color: var(--mirror-text-secondary);
+  overflow-wrap: anywhere;
+}

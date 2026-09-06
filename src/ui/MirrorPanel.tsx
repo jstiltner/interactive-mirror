@@ -3,7 +3,13 @@
 import { useEffect, useRef, useState } from "react";
 import { MEASUREMENT_DISTORTIONS, UNKNOWNS } from "../authored";
 import { describeRule, ruleById } from "../claims";
-import { InsufficientEvidence, MirrorFrame, PanelHeading } from "./MirrorShell";
+import {
+  InsufficientEvidence,
+  MirrorFrame,
+  PanelHeading,
+  RuleSourceLink,
+} from "./MirrorShell";
+import { describeIdentity, type MirrorBuildIdentity } from "../identity";
 import { passageManifest } from "../manifest";
 import { approximateSeconds } from "../observations";
 import { mirrorSession } from "../session";
@@ -53,10 +59,12 @@ function ClaimCard({
   claim,
   observations,
   responses,
+  identity,
 }: {
   claim: Claim;
   observations: Map<string, Observation>;
   responses: UserResponse[];
+  identity: MirrorBuildIdentity;
 }) {
   const [open, setOpen] = useState(false);
   const detailRef = useRef<HTMLDivElement>(null);
@@ -115,7 +123,10 @@ function ClaimCard({
             <h6 className="mirror-detail__title">Evidence</h6>
             <ul className="mirror-detail__list">
               {support.map((observation) => (
-                <li key={observation.id}>{observation.statement}</li>
+                <li key={observation.id}>
+                  {observation.statement}{" "}
+                  <RuleSourceLink identity={identity} ruleId={observation.ruleId} />
+                </li>
               ))}
             </ul>
             <p className="mirror-detail__aside">
@@ -124,6 +135,10 @@ function ClaimCard({
                 ? "one behavioural episode"
                 : `${claim.evidenceRootIds.length} separate behavioural episodes`}
               . {describeRule(rule, manifest)}
+            </p>
+            {/* §41's last link: rule id to the exact lines, at the revision now deployed. */}
+            <p className="mirror-detail__aside">
+              Rule: <RuleSourceLink identity={identity} ruleId={rule.id} />
             </p>
           </div>
 
@@ -192,7 +207,12 @@ function ClaimCard({
   );
 }
 
-export default function MirrorPanel() {
+/**
+ * `identity` is required, not optional with a fallback. A host that forgets it fails `tsc`, which
+ * is the point: an optional build identity would degrade to a panel whose audit links go nowhere,
+ * and a broken link is worse than an absent one — it looks like verification.
+ */
+export default function MirrorPanel({ identity }: { identity: MirrorBuildIdentity }) {
   const model = useMirrorModel();
   const [showRules, setShowRules] = useState(false);
   const exposed = model.state !== "collecting" && model.state !== "ready";
@@ -210,7 +230,7 @@ export default function MirrorPanel() {
 
   if (!exposed) {
     return (
-      <MirrorFrame state={model.state}>
+      <MirrorFrame identity={identity} state={model.state}>
         <div>
           <p className="mirror-prose mirror-mb-3">
             {model.state === "ready"
@@ -237,13 +257,13 @@ export default function MirrorPanel() {
             separately and cannot change them.
           </p>
         </div>
-        <MirrorRules showRules={showRules} onToggle={() => setShowRules((was) => !was)} />
+        <MirrorRules identity={identity} showRules={showRules} onToggle={() => setShowRules((was) => !was)} />
       </MirrorFrame>
     );
   }
 
   return (
-    <MirrorFrame state={model.state}>
+    <MirrorFrame identity={identity} state={model.state}>
       {model.state === "insufficient" ? (
         <InsufficientEvidence observations={model.observations} />
       ) : (
@@ -266,6 +286,7 @@ export default function MirrorPanel() {
                   claim={claim}
                   observations={observations}
                   responses={model.responses.filter((r) => r.claimId === claim.id)}
+                  identity={identity}
                 />
               ))}
             </ul>
@@ -314,12 +335,21 @@ export default function MirrorPanel() {
         )}
       </div>
 
-      <MirrorRules showRules={showRules} onToggle={() => setShowRules((was) => !was)} />
+      <MirrorRules identity={identity} showRules={showRules} onToggle={() => setShowRules((was) => !was)} />
     </MirrorFrame>
   );
 }
 
-function MirrorRules({ showRules, onToggle }: { showRules: boolean; onToggle: () => void }) {
+function MirrorRules({
+  identity,
+  showRules,
+  onToggle,
+}: {
+  identity: MirrorBuildIdentity;
+  showRules: boolean;
+  onToggle: () => void;
+}) {
+  const described = describeIdentity(identity);
   return (
     <div className="mirror-rules">
       <button
@@ -354,12 +384,34 @@ function MirrorRules({ showRules, onToggle }: { showRules: boolean; onToggle: ()
                     ? `${rule.maximumConfidence} confidence at most`
                     : "never promoted to a claim — the observation is the honest form"}
                   )
-                </span>
+                </span>{" "}
+                <RuleSourceLink identity={identity} ruleId={rule.id} />
                 <br />
                 {describeRule(rule, manifest)}
               </li>
             ))}
           </ol>
+
+          {/*
+            The four identifiers that make the links above mean something. Split across two
+            repositories on purpose: three describe this package, and the commit is supplied by
+            the site that installed it, because a file cannot contain the hash of the commit
+            containing it.
+          */}
+          <dl className="mirror-identity-list" data-mirror-identity-detail>
+            <dt>package</dt>
+            <dd>{described.packageVersion}</dd>
+            <dt>ruleset</dt>
+            <dd>{described.rulesetVersion}</dd>
+            <dt>manifest</dt>
+            <dd>{described.manifestVersion}</dd>
+            <dt>commit</dt>
+            <dd>
+              <a href={described.treeUrl} rel="noopener noreferrer" target="_blank">
+                {described.commit}
+              </a>
+            </dd>
+          </dl>
         </div>
       )}
     </div>

@@ -1,4 +1,5 @@
 import { UNKNOWNS } from "../authored";
+import { describeIdentity, ruleSourceUrl, type MirrorBuildIdentity } from "../identity";
 import type { Observation } from "../types";
 
 /**
@@ -26,9 +27,11 @@ export function PanelHeading({ children }: { children: React.ReactNode }) {
  */
 export function MirrorFrame({
   children,
+  identity,
   state = "loading",
 }: {
   children: React.ReactNode;
+  identity: MirrorBuildIdentity;
   state?: string;
 }) {
   return (
@@ -41,11 +44,63 @@ export function MirrorFrame({
           which references you opened. The measurement stops when the tab is hidden or you stop
           interacting. <strong>None of it leaves your browser</strong> — no request is made, nothing
           is stored, and it is gone when you reload. The rules that turn it into claims are below,
-          and in the page source.
+          and in the source linked at the foot of this panel.
         </p>
       </div>
       <div className="mirror__body">{children}</div>
+      <BuildIdentity identity={identity} />
     </div>
+  );
+}
+
+/**
+ * §41's minimum: the reader can always see which build is describing them.
+ *
+ * `rel="noreferrer"` is not boilerplate here. Without it the browser sends this page's URL to
+ * GitHub as the referrer, so the act of auditing a panel that says nothing leaves your browser
+ * would itself tell a third party what you were reading.
+ */
+export function BuildIdentity({ identity }: { identity: MirrorBuildIdentity }) {
+  const described = describeIdentity(identity);
+  return (
+    <p
+      className="mirror__identity"
+      data-mirror-build-identity
+      data-commit={described.commit}
+      data-package-version={described.packageVersion}
+      data-ruleset-version={described.rulesetVersion}
+      data-manifest-version={described.manifestVersion}
+    >
+      mirror {described.packageVersion} · rules {described.rulesetVersion} · manifest{" "}
+      {described.manifestVersion} ·{" "}
+      <a href={described.treeUrl} rel="noopener noreferrer" target="_blank">
+        {described.shortCommit}
+      </a>
+    </p>
+  );
+}
+
+/** The per-rule audit link. Absent rather than approximate when no span is known. */
+export function RuleSourceLink({
+  identity,
+  ruleId,
+}: {
+  identity: MirrorBuildIdentity;
+  ruleId: string;
+}) {
+  const href = ruleSourceUrl(identity, ruleId);
+  if (!href) return null;
+  return (
+    <a
+      className="mirror-source-link"
+      href={href}
+      rel="noopener noreferrer"
+      target="_blank"
+      data-source-link
+      data-rule-id={ruleId}
+    >
+      {ruleId}
+    </a>
   );
 }
 
@@ -91,9 +146,9 @@ export function InsufficientEvidence({ observations }: { observations: Observati
   );
 }
 
-export default function MirrorShell() {
+export default function MirrorShell({ identity }: { identity: MirrorBuildIdentity }) {
   return (
-    <MirrorFrame state="loading">
+    <MirrorFrame identity={identity} state="loading">
       <InsufficientEvidence observations={[]} />
       <div>
         <button type="button" disabled className="mirror-button mirror-button--inert">
