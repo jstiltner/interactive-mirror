@@ -2,6 +2,7 @@
   "why": "The reviewed list of every file `npm pack` puts in the tarball. Guard C compares npm's actual output against this. A `files` array in package.json declares intent; this records the result, which is what a consumer installs. Adding a file to the package is therefore a diff someone has to approve, not a side effect of creating it.",
   "files": [
     "LICENSE",
+    "README.md",
     "fixtures/capability-probe/src/exfiltrate.ts",
     "fixtures/passages/archive-self-citation.txt",
     "fixtures/passages/epistemic-history-record.txt",

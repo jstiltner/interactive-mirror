@@ -1,0 +1,51 @@
+# Everything the README asserts about this package is asserted by something in this file.
+#
+# The privacy guards are the reason this workflow is not optional. They are the difference
+# between "we do not call fetch" as a habit and as a property, and a habit that is only
+# checked when someone remembers to run the suite is a habit.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  # Tags are what hosts pin to. A tag that fails its own tests is a tag someone will install.
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      # Unit and property tests, plus guards A (capability absence), B (dependency graph)
+      # and C (published file list).
+      - name: Test
+        run: npm run test
+
+      # The two generated files are committed so a reader can diff them. Regenerating and
+      # diffing here is what stops them rotting: a rule that moves in the source without its
+      # source-span moving with it produces audit links that point at the wrong lines, and a
+      # threshold that changes without RULESET_VERSION changing makes the identity panel lie.
+      #
+      # The suite already regenerates both in memory. This runs the real generators as well,
+      # so a bug in a generator that the in-memory path happens to share cannot hide.
+      - name: Generated files are current
+        run: |
+          npm run generate:source-spans
+          npm run generate:ruleset-digest
+          git diff --exit-code src/generated/source-spans.ts src/ruleset.digest.json
