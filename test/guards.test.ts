@@ -12,6 +12,7 @@
  * have a whole page to ask it about.
  */
 
+import { execSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -139,6 +140,32 @@ describe("guard C — what actually ships", () => {
   it("publishes the source, the tools, the fixtures and the licence, and nothing else", () => {
     expect(pkg.files).toEqual(["src", "tools", "testing", "fixtures", "README.md", "LICENSE"]);
   });
+
+  it("puts exactly the reviewed list of files in the tarball", () => {
+    // `files` above is a declaration of intent. This is the result: what npm, applying `files`
+    // together with .npmignore, .gitignore and its own always/never rules, actually hands a
+    // consumer. The two come apart easily — a new directory matching a `files` entry ships
+    // without anyone deciding it should — and a privacy package is a bad place for a file to
+    // arrive unnoticed.
+    //
+    // `fixtures/capability-probe/src/exfiltrate.ts` on that list is the case in point. It reaches
+    // for every API this package disclaims, and it ships on purpose, because it is the evidence
+    // that the guard which forbids them works. Appearing in a reviewed manifest is how that stays
+    // a decision rather than a surprise.
+    const packed = JSON.parse(
+      // A constant command string, run through a shell. `execFileSync` with an argument array
+      // would be the usual advice, but on Windows npm is a `.cmd` shim that Node 24 refuses to
+      // spawn without one. The advice exists to stop arguments being concatenated instead of
+      // escaped; there are no arguments here to concatenate.
+      execSync("npm pack --dry-run --json", {
+        cwd: root,
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "ignore"],
+      })
+    ) as [{ files: { path: string }[] }];
+    const reviewed = JSON.parse(readFileSync(path.join(root, "package-contents.json"), "utf8"));
+    expect(packed[0].files.map((file) => file.path).sort()).toEqual(reviewed.files);
+  }, 60_000);
 
   it("exports the source directly, with no build step to hide anything in", () => {
     // A source-only package is the point. A reader auditing the deployed Mirror is reading the

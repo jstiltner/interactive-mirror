@@ -8,9 +8,9 @@
 
 import { describe, expect, it } from "vitest";
 import { deriveObservations } from "../src/observations";
-import { ACTIVITY_PING_MS } from "../src/thresholds";
 import type { PassageDefinition } from "../src/manifest";
 import type { ReaderEvent } from "../src/types";
+import { readingLog, type Span } from "../fixtures/sessions";
 
 const manifest: PassageDefinition[] = [
   {
@@ -47,38 +47,8 @@ const manifest: PassageDefinition[] = [
   },
 ];
 
-interface Span {
-  target: string;
-  section?: string;
-  from: number;
-  to: number;
-}
-
-/** Builds a log with activity pings dense enough that nothing is idle unless a test says so. */
-function log(spans: Span[], extra: Partial<ReaderEvent>[] = [], end = 0): ReaderEvent[] {
-  let seq = 0;
-  const next = (event: Omit<ReaderEvent, "id" | "exposureState">): ReaderEvent => ({
-    id: `evt_${++seq}`,
-    exposureState: "pre",
-    ...event,
-  });
-
-  const events: ReaderEvent[] = [];
-  const last = Math.max(end, ...spans.map((span) => span.to));
-  for (let t = 0; t <= last; t += ACTIVITY_PING_MS) {
-    events.push(next({ type: "activity", timestamp: t }));
-  }
-  for (const span of spans) {
-    const section = span.section ?? span.target;
-    const target = span.section ? span.target : undefined;
-    events.push(next({ type: "section_enter", timestamp: span.from, section, target }));
-    events.push(next({ type: "section_exit", timestamp: span.to, section, target }));
-  }
-  for (const event of extra) {
-    events.push(next({ type: "activity", timestamp: 0, ...event } as ReaderEvent));
-  }
-  return events.sort((a, b) => a.timestamp - b.timestamp);
-}
+const log = (spans: Span[], extra: Partial<ReaderEvent>[] = [], end = 0) =>
+  readingLog(spans, { extra, until: end });
 
 const derive = (events: ReaderEvent[], now: number) =>
   deriveObservations(events, manifest, { now, exposureState: "pre" });

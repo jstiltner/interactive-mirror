@@ -8,67 +8,13 @@
 import { describe, expect, it } from "vitest";
 import { buildMirrorModel } from "../src/runtime";
 import { passageManifest } from "../src/manifest";
-import { ACTIVITY_PING_MS } from "../src/thresholds";
 import type { MirrorSnapshot } from "../src/session";
-import type { MirrorSession, ReaderEvent, UserResponse } from "../src/types";
+import type { Confidence, MirrorSession, UserResponse } from "../src/types";
+import { AFTER_EXPOSURE, ATTENTIVE, GLANCE, readingLog, type Span } from "../fixtures/sessions";
 
 const manifest = passageManifest.passages;
 
-interface Span {
-  target: string;
-  section?: string;
-  from: number;
-  to: number;
-}
-
-/**
- * A log with activity pings dense enough that the reader is never idle. `seed` keeps event ids
- * unique across the pre- and post-exposure arrays of the same session.
- */
-function log(spans: Span[], from: number, to: number, seed: string): ReaderEvent[] {
-  let seq = 0;
-  const events: ReaderEvent[] = [];
-  const next = (event: Omit<ReaderEvent, "id" | "exposureState">): ReaderEvent => ({
-    id: `evt_${seed}_${++seq}`,
-    exposureState: seed === "pre" ? "pre" : "post",
-    ...event,
-  });
-
-  for (let t = from; t <= to; t += ACTIVITY_PING_MS) {
-    events.push(next({ type: "activity", timestamp: t }));
-  }
-  for (const span of spans) {
-    const section = span.section ?? span.target;
-    const target = span.section ? span.target : undefined;
-    events.push(next({ type: "section_enter", timestamp: span.from, section, target }));
-    events.push(next({ type: "section_exit", timestamp: span.to, section, target }));
-  }
-  return events.sort((a, b) => a.timestamp - b.timestamp);
-}
-
-/**
- * A reader who lingers on the two mechanism passages, skims two abstract ones, and comes back to
- * Section II. Enough for mechanism_affinity_v1 and recursive_attention_v1 at moderate.
- */
-const READING: Span[] = [
-  { target: "section-ii", from: 0, to: 60_000 },
-  { target: "archive-self-citation", section: "section-ii", from: 0, to: 60_000 },
-  { target: "section-iii", from: 60_000, to: 80_000 },
-  { target: "intuition-limits", section: "section-iii", from: 60_000, to: 80_000 },
-  { target: "section-iv", from: 80_000, to: 100_000 },
-  { target: "revealed-preference-limits", section: "section-iv", from: 80_000, to: 100_000 },
-  { target: "section-v", from: 100_000, to: 160_000 },
-  { target: "performative-loop", section: "section-v", from: 100_000, to: 160_000 },
-  { target: "section-ii", from: 160_000, to: 180_000 },
-];
-
-/** Barely arrived: one section, half a minute, no passage measured against any median. */
-const GLANCE: Span[] = [{ target: "section-ii", from: 0, to: 20_000 }];
-
 const EXPOSED_AT = 190_000;
-
-/** Section X, read for a minute after the reveal. The §19a case. */
-const AFTER: Span[] = [{ target: "section-x", from: 200_000, to: 265_000 }];
 
 function snapshot(options: {
   spans: Span[];
@@ -82,8 +28,15 @@ function snapshot(options: {
     ...(options.exposureTimestamp === undefined
       ? {}
       : { exposureTimestamp: options.exposureTimestamp }),
-    preExposureEvents: log(options.spans, 0, 180_000, "pre"),
-    postExposureEvents: options.after ? log(options.after, 195_000, 265_000, "post") : [],
+    preExposureEvents: readingLog(options.spans, { until: 180_000, seed: "pre" }),
+    postExposureEvents: options.after
+      ? readingLog(options.after, {
+          from: 195_000,
+          until: 265_000,
+          seed: "post",
+          exposureState: "post",
+        })
+      : [],
     responses: options.responses ?? [],
   };
   return { session, clock: options.clock };
@@ -91,6 +44,53 @@ function snapshot(options: {
 
 const model = (options: Parameters<typeof snapshot>[0]) =>
   buildMirrorModel(snapshot(options), manifest);
+
+describe("the ordinal scale stops at moderate (§13, §36)", () => {
+  // The rule table is checked elsewhere, but a ceiling declared per rule is not the same claim as
+  // a ceiling observed on what the reader is actually shown. This checks the output, including
+  // after a reader has agreed with everything — the obvious place for a confidence to creep up.
+  const everyClaim = [
+    model({ spans: ATTENTIVE, clock: EXPOSED_AT, exposureTimestamp: EXPOSED_AT }),
+    model({
+      spans: ATTENTIVE,
+      clock: 270_000,
+      exposureTimestamp: EXPOSED_AT,
+      after: AFTER_EXPOSURE,
+      responses: [
+        { id: "res_1", claimId: "claim_mechanism_affinity_v1", response: "endorsed", timestamp: 200_000 },
+        { id: "res_2", claimId: "claim_recursive_attention_v1", response: "endorsed", timestamp: 201_000 },
+      ],
+    }),
+  ].flatMap((built) => built.claims);
+
+  it("shows the reader nothing above moderate", () => {
+    expect(everyClaim.length).toBeGreaterThan(0);
+    for (const claim of everyClaim) {
+      expect(["low", "moderate"], claim.id).toContain(claim.confidence);
+    }
+  });
+
+  it("records nothing above moderate in the history either", () => {
+    // The history is what §46 lets a reader audit. A ceiling enforced on the current value but not
+    // on the record would leave a claim that had, on paper, once been certain.
+    for (const claim of everyClaim) {
+      for (const entry of claim.history) {
+        const recorded = (entry.payload as { confidence?: string }).confidence;
+        if (recorded === undefined) continue;
+        expect(["low", "moderate"], `${claim.id}/${entry.type}`).toContain(recorded);
+      }
+    }
+  });
+
+  it("admits nothing else at the type level", () => {
+    // Not a runtime assertion — the value of this test is that `tsc` fails if the union is ever
+    // widened, because the expected error would stop happening. It is the structural half of the
+    // guarantee: the tests above check what the rules produce, this checks what the type permits.
+    // @ts-expect-error "high" is not a member of the ordinal scale §13 defines.
+    const widened: Confidence = "high";
+    expect(widened).toBe("high");
+  });
+});
 
 describe("state machine (§31)", () => {
   it("collects quietly while there is not yet a claim to make", () => {
@@ -100,21 +100,21 @@ describe("state machine (§31)", () => {
   });
 
   it("reaches ready without showing anything the reader has not asked for", () => {
-    const ready = model({ spans: READING, clock: EXPOSED_AT });
+    const ready = model({ spans: ATTENTIVE, clock: EXPOSED_AT });
     expect(ready.state).toBe("ready");
     expect(ready.observations.length).toBeGreaterThan(0);
     expect(ready.claims).toEqual([]);
   });
 
   it("exposes on the reveal, and moves to post_exposure only once the reader answers", () => {
-    const exposed = model({ spans: READING, clock: EXPOSED_AT, exposureTimestamp: EXPOSED_AT });
+    const exposed = model({ spans: ATTENTIVE, clock: EXPOSED_AT, exposureTimestamp: EXPOSED_AT });
     expect(exposed.state).toBe("exposed");
     expect(exposed.claims.length).toBeGreaterThan(0);
     expect(exposed.claims.every((claim) => claim.status === "exposed")).toBe(true);
     expect(exposed.claims.every((claim) => claim.exposedAt === EXPOSED_AT)).toBe(true);
 
     const answered = model({
-      spans: READING,
+      spans: ATTENTIVE,
       clock: 210_000,
       exposureTimestamp: EXPOSED_AT,
       responses: [
@@ -142,19 +142,19 @@ describe("state machine (§31)", () => {
 
 describe("the exposure freeze (§18, §38)", () => {
   it("derives the claims as of the reveal, not as of the render", () => {
-    const atReveal = model({ spans: READING, clock: EXPOSED_AT, exposureTimestamp: EXPOSED_AT });
-    const muchLater = model({ spans: READING, clock: 900_000, exposureTimestamp: EXPOSED_AT });
+    const atReveal = model({ spans: ATTENTIVE, clock: EXPOSED_AT, exposureTimestamp: EXPOSED_AT });
+    const muchLater = model({ spans: ATTENTIVE, clock: 900_000, exposureTimestamp: EXPOSED_AT });
     expect(muchLater.derivedAt).toBe(EXPOSED_AT);
     expect(muchLater.claims).toEqual(atReveal.claims);
   });
 
   it("leaves the claims untouched however much the reader reads afterwards", () => {
-    const before = model({ spans: READING, clock: EXPOSED_AT, exposureTimestamp: EXPOSED_AT });
+    const before = model({ spans: ATTENTIVE, clock: EXPOSED_AT, exposureTimestamp: EXPOSED_AT });
     const after = model({
-      spans: READING,
+      spans: ATTENTIVE,
       clock: 270_000,
       exposureTimestamp: EXPOSED_AT,
-      after: AFTER,
+      after: AFTER_EXPOSURE,
     });
     expect(after.claims).toEqual(before.claims);
     expect(after.postExposureObservations.length).toBeGreaterThan(0);
@@ -164,10 +164,10 @@ describe("the exposure freeze (§18, §38)", () => {
 describe("the partition holds (§19a, §39)", () => {
   it("never lets a post-exposure observation into a claim's evidence", () => {
     const after = model({
-      spans: READING,
+      spans: ATTENTIVE,
       clock: 270_000,
       exposureTimestamp: EXPOSED_AT,
-      after: AFTER,
+      after: AFTER_EXPOSURE,
     });
     const attached = new Set(after.claims.flatMap((claim) => claim.supportingObservationIds));
     const contradicting = new Set(after.claims.flatMap((c) => c.contradictingObservationIds));
@@ -179,10 +179,10 @@ describe("the partition holds (§19a, §39)", () => {
 
   it("reads Section X after the reveal through the same rules, from the other collection", () => {
     const after = model({
-      spans: READING,
+      spans: ATTENTIVE,
       clock: 270_000,
       exposureTimestamp: EXPOSED_AT,
-      after: AFTER,
+      after: AFTER_EXPOSURE,
     });
     const sectionX = after.postExposureObservations.find(
       (observation) => observation.target === "section-x"
@@ -192,7 +192,7 @@ describe("the partition holds (§19a, §39)", () => {
   });
 
   it("shows nothing post-exposure before the boundary exists", () => {
-    expect(model({ spans: READING, clock: EXPOSED_AT }).postExposureObservations).toEqual([]);
+    expect(model({ spans: ATTENTIVE, clock: EXPOSED_AT }).postExposureObservations).toEqual([]);
   });
 });
 
@@ -204,12 +204,12 @@ describe("contestation (§17)", () => {
     timestamp,
   });
 
-  const base = model({ spans: READING, clock: EXPOSED_AT, exposureTimestamp: EXPOSED_AT });
+  const base = model({ spans: ATTENTIVE, clock: EXPOSED_AT, exposureTimestamp: EXPOSED_AT });
   const original = base.claims.find((claim) => claim.id === "claim_mechanism_affinity_v1")!;
 
   it("attaches 'Wrong' to the claim without making the claim false", () => {
     const disputed = model({
-      spans: READING,
+      spans: ATTENTIVE,
       clock: 210_000,
       exposureTimestamp: EXPOSED_AT,
       responses: [respond("disputed", 200_000, "res_1")],
@@ -229,7 +229,7 @@ describe("contestation (§17)", () => {
 
   it("does not promote the claim to a fact when the reader agrees", () => {
     const endorsed = model({
-      spans: READING,
+      spans: ATTENTIVE,
       clock: 210_000,
       exposureTimestamp: EXPOSED_AT,
       responses: [respond("endorsed", 200_000, "res_1")],
@@ -242,7 +242,7 @@ describe("contestation (§17)", () => {
 
   it("appends a second answer rather than replacing the first", () => {
     const twice = model({
-      spans: READING,
+      spans: ATTENTIVE,
       clock: 220_000,
       exposureTimestamp: EXPOSED_AT,
       responses: [respond("disputed", 200_000, "res_1"), respond("qualified", 210_000, "res_2")],
@@ -255,7 +255,7 @@ describe("contestation (§17)", () => {
 
   it("leaves the other claims alone", () => {
     const disputed = model({
-      spans: READING,
+      spans: ATTENTIVE,
       clock: 210_000,
       exposureTimestamp: EXPOSED_AT,
       responses: [respond("disputed", 200_000, "res_1")],
@@ -269,7 +269,7 @@ describe("contestation (§17)", () => {
 
 describe("provenance (§45, §46)", () => {
   it("can resolve every visible claim's evidence back to a visible observation", () => {
-    const exposed = model({ spans: READING, clock: EXPOSED_AT, exposureTimestamp: EXPOSED_AT });
+    const exposed = model({ spans: ATTENTIVE, clock: EXPOSED_AT, exposureTimestamp: EXPOSED_AT });
     const shown = new Set(exposed.observations.map((observation) => observation.id));
 
     expect(exposed.claims.length).toBeGreaterThan(0);
@@ -280,9 +280,9 @@ describe("provenance (§45, §46)", () => {
   });
 
   it("can resolve every visible observation back to events in the log it was derived from", () => {
-    const exposed = model({ spans: READING, clock: EXPOSED_AT, exposureTimestamp: EXPOSED_AT });
+    const exposed = model({ spans: ATTENTIVE, clock: EXPOSED_AT, exposureTimestamp: EXPOSED_AT });
     const logged = new Set(
-      snapshot({ spans: READING, clock: EXPOSED_AT }).session.preExposureEvents.map((e) => e.id)
+      snapshot({ spans: ATTENTIVE, clock: EXPOSED_AT }).session.preExposureEvents.map((e) => e.id)
     );
     for (const observation of exposed.observations) {
       expect(observation.evidenceEventIds.length).toBeGreaterThan(0);
@@ -294,10 +294,10 @@ describe("provenance (§45, §46)", () => {
 describe("reproducibility (§35)", () => {
   it("builds the same model twice from the same session", () => {
     const options = {
-      spans: READING,
+      spans: ATTENTIVE,
       clock: 270_000,
       exposureTimestamp: EXPOSED_AT,
-      after: AFTER,
+      after: AFTER_EXPOSURE,
       responses: [
         {
           id: "res_1",
