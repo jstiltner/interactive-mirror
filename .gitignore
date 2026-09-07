@@ -2,3 +2,4 @@ node_modules/
 *.tgz
 demo/dist/
 .DS_Store
+.gstack/

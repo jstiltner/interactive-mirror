@@ -16,7 +16,7 @@
  * an observation about the deployed artifact rather than an assertion by the artifact about itself.
  */
 
-export const PACKAGE_VERSION = "0.2.1";
+export const PACKAGE_VERSION = "0.2.2";
 
 /**
  * Bumped whenever `thresholds.ts` or the rule table in `claims.ts` changes. `ruleset.digest.json`

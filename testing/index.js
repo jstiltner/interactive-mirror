@@ -12,6 +12,24 @@
  * as the consumer's — instead of the consumer's suite quietly passing against nothing, which is
  * how "no Mirror-originated request was observed" turns into a sentence that is true because
  * nothing was looked at.
+ *
+ * ## Why this one module is JavaScript when the rest of the package is TypeScript
+ *
+ * Everything else here ships as `.ts` on purpose: a reader auditing the deployed Mirror should be
+ * reading the same characters the browser ran, and the host application's bundler compiles them.
+ * This module has a different job. It is loaded by *other people's test runners*, and a test
+ * runner is not a bundler.
+ *
+ * Playwright is the concrete case. It transpiles the files under its own `testDir` and delegates
+ * everything else to Node, and Node refuses to strip types from anything inside `node_modules` —
+ * unconditionally, with no flag. Playwright's exclusion is equally hardcoded. So a `.ts` file
+ * here is unloadable by the single most likely consumer of a DOM contract, and the failure looks
+ * like a broken package rather than a policy.
+ *
+ * Hand-written `.js` plus a hand-written `.d.ts` keeps the package's actual principle intact —
+ * nothing is compiled, what you read is what runs — while making the contract loadable by any
+ * runner. The types are maintained beside the values in `index.d.ts`; there is no build step and
+ * no generated artifact.
  */
 
 export const MIRROR_SELECTORS = {
@@ -37,31 +55,30 @@ export const MIRROR_SELECTORS = {
   /** The always-visible build line: package, ruleset, manifest, commit. */
   buildIdentity: "[data-mirror-build-identity]",
   identityDetail: "[data-mirror-identity-detail]",
-} as const;
+};
 
-export function claimSelector(claimId: string): string {
+/**
+ * @param {string} claimId
+ * @returns {string}
+ */
+export function claimSelector(claimId) {
   return `[data-mirror-claim][data-claim-id="${claimId}"]`;
 }
 
-export function ruleSelector(ruleId: string): string {
+/**
+ * @param {string} ruleId
+ * @returns {string}
+ */
+export function ruleSelector(ruleId) {
   return `[data-mirror-rule][data-rule-id="${ruleId}"]`;
 }
 
-export function sourceLinkSelector(ruleId: string): string {
-  return `[data-source-link][data-rule-id="${ruleId}"]`;
-}
-
 /**
- * The fields of an exposed claim that must be byte-identical before and after any post-exposure
- * reading (§18). Deliberately *not* the whole element: the response history below a claim is
- * expected to grow when the reader presses a button, and asserting on the full subtree would
- * either fail on that or force the test to allow edits it should be forbidding.
+ * @param {string} ruleId
+ * @returns {string}
  */
-export interface ClaimFingerprint {
-  claimId: string;
-  ruleId: string;
-  confidence: string;
-  statement: string;
+export function sourceLinkSelector(ruleId) {
+  return `[data-source-link][data-rule-id="${ruleId}"]`;
 }
 
 /**
@@ -71,9 +88,4 @@ export interface ClaimFingerprint {
  * that could write to any of these, which is why the guard is an AST scan and this list is only
  * the runtime confirmation of it.
  */
-export const FORBIDDEN_STORAGE = [
-  "localStorage",
-  "sessionStorage",
-  "indexedDB",
-  "cookie",
-] as const;
+export const FORBIDDEN_STORAGE = ["localStorage", "sessionStorage", "indexedDB", "cookie"];
