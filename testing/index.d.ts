@@ -18,8 +18,12 @@ export declare const MIRROR_SELECTORS: {
   readonly claim: "[data-mirror-claim]";
   /** Accurate / Wrong / More complicated (§17). */
   readonly response: "[data-mirror-response]";
-  /** The "What this was derived from" contents, once opened. */
-  readonly claimDetail: "[data-mirror-claim] [data-source-link]";
+  /** The control that opens a claim's derivation. Matching on its label would break on a copy
+      edit, which is the failure mode this contract exists to remove. */
+  readonly claimToggle: "[data-mirror-claim-toggle]";
+  /** The derivation itself. Absent from the DOM until the toggle is pressed, so its presence is
+      also the assertion that the disclosure actually opened. */
+  readonly claimDetail: "[data-mirror-claim-detail]";
   /** A rule in the plain-language disclosure (§41). */
   readonly rule: "[data-mirror-rule]";
   readonly rulesToggle: "[data-mirror-rules-toggle]";

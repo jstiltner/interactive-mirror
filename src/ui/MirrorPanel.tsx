@@ -112,13 +112,20 @@ function ClaimCard({
         onClick={toggle}
         aria-expanded={open}
         aria-controls={detailId}
+        data-mirror-claim-toggle
         className="mirror-button mirror-button--link mirror-mt-2"
       >
         {open ? "Hide" : "What this was derived from"}
       </button>
 
       {open && (
-        <div id={detailId} ref={detailRef} tabIndex={-1} className="mirror-claim__detail">
+        <div
+          id={detailId}
+          ref={detailRef}
+          tabIndex={-1}
+          data-mirror-claim-detail
+          className="mirror-claim__detail"
+        >
           <div className="mirror-detail">
             <h6 className="mirror-detail__title">Evidence</h6>
             <ul className="mirror-detail__list">

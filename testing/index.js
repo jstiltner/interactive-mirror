@@ -43,8 +43,12 @@ export const MIRROR_SELECTORS = {
   claim: "[data-mirror-claim]",
   /** Accurate / Wrong / More complicated (§17). */
   response: "[data-mirror-response]",
-  /** The "What this was derived from" contents, once opened. */
-  claimDetail: "[data-mirror-claim] [data-source-link]",
+  /** The control that opens a claim's derivation. Matching on its label would break on a copy
+      edit, which is the failure mode this contract exists to remove. */
+  claimToggle: "[data-mirror-claim-toggle]",
+  /** The derivation itself. Absent from the DOM until the toggle is pressed, so its presence is
+      also the assertion that the disclosure actually opened. */
+  claimDetail: "[data-mirror-claim-detail]",
   /** A rule in the plain-language disclosure (§41). */
   rule: "[data-mirror-rule]",
   rulesToggle: "[data-mirror-rules-toggle]",
