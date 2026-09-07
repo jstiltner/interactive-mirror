@@ -230,7 +230,10 @@ src/
   version.ts        identifiers
   identity.ts       claim -> commit-pinned source URL
   ui/               MirrorPanel, MirrorShell, Passage, mirror.css
-testing/            DOM contract selectors + shared assertions for host repos
+testing/
+  index.js          the DOM contract: data-* selectors host suites assert against
+  index.d.ts        its types, hand-written beside it
+  reference.json    generated: thresholds, manifest and rule ids, for host fixtures
 fixtures/
   passages/         the seven marked passages as prose snapshots
   sessions/         declarative reading histories the tests consume
@@ -245,7 +248,7 @@ The reading fixtures ship with the package rather than living in `test/` because
 ## Using it
 
 ```
-npm install github:jstiltner/interactive-mirror#v0.2.0
+npm install github:jstiltner/interactive-mirror#v0.2.3
 ```
 
 Source-only, on purpose: there is no build step to hide anything in, and a reader auditing the deployed Mirror is reading the same characters the browser ran. Next.js hosts need `transpilePackages: ["@jstiltner/interactive-mirror"]`. Peer dependency: React 18 or 19.
@@ -267,6 +270,21 @@ const MirrorPanel = dynamic(() => import("@jstiltner/interactive-mirror/panel"),
 `./panel` is a separate entry point so the split is a property of the module graph rather than a hope about tree-shaking. Both paths resolve the same `session.ts`, so there is exactly one event log.
 
 `MirrorPanel` and `MirrorShell` both take a **required** `identity` prop. A host that forgets it fails `tsc`, which is deliberate — an optional build identity would degrade to a panel whose audit links go nowhere, and a broken link looks like verification in a way an absent one does not.
+
+## Verifying it in your own application
+
+The guarantees this README makes are about a *deployed* page, and only the host can build one. `./testing` exists so a host suite can check them without hand-rolling anything.
+
+```js
+import { MIRROR_SELECTORS } from "@jstiltner/interactive-mirror/testing";
+import reference from "@jstiltner/interactive-mirror/testing/reference.json" with { type: "json" };
+```
+
+`MIRROR_SELECTORS` is the `data-*` contract. Attribute names are string literals in the emitted JSX, so they survive minification — which class names, function names and React component identity do not. If a selector here stops matching, this package's own tests fail in the same commit as yours, rather than yours passing against nothing.
+
+`reference.json` is the thresholds, the passage manifest and the rule table, generated from `src/` and checked against it by `test/reference.test.ts`. You need it because almost every interesting assertion about the Mirror is negative — nothing was sent, nothing was stored, nothing changed after exposure — and negative assertions are satisfied perfectly by a Mirror that concluded nothing at all. A host suite has to first drive a reading that clears the claim gates, and it cannot do that without knowing what the gates are. **Write that precondition as a test and run it first.** Without it the rest of the suite is green and means nothing.
+
+These two files are hand-written JavaScript and generated JSON while everything else here is TypeScript. That is not an inconsistency. The rest of the package is compiled by the host's bundler; this part is loaded by the host's *test runner*, and a test runner is not a bundler — Node refuses to strip types under `node_modules`, and Playwright hardcodes the same exclusion. The one module whose job is portability has to be portable.
 
 ## Documents
 

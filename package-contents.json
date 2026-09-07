@@ -33,11 +33,14 @@
     "src/version.ts",
     "testing/index.d.ts",
     "testing/index.js",
+    "testing/reference.json",
     "tools/canonical-json.ts",
+    "tools/generate-reference.ts",
     "tools/generate-ruleset-digest.ts",
     "tools/generate-source-spans.ts",
     "tools/guard-structural-absence.ts",
     "tools/passage-text.ts",
+    "tools/reference.ts",
     "tools/ruleset-digest.ts",
     "tools/source-spans.ts"
   ]
