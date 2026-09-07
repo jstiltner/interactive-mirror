@@ -248,7 +248,7 @@ The reading fixtures ship with the package rather than living in `test/` because
 ## Using it
 
 ```
-npm install github:jstiltner/interactive-mirror#v0.2.4
+npm install github:jstiltner/interactive-mirror#v0.2.5
 ```
 
 Source-only, on purpose: there is no build step to hide anything in, and a reader auditing the deployed Mirror is reading the same characters the browser ran. Next.js hosts need `transpilePackages: ["@jstiltner/interactive-mirror"]`. Peer dependency: React 18 or 19.

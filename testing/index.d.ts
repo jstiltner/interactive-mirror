@@ -16,6 +16,11 @@ export declare const MIRROR_SELECTORS: {
   readonly reveal: "[data-mirror-reveal]";
   /** An exposed claim, carrying its rule, its id and its confidence tier. */
   readonly claim: "[data-mirror-claim]";
+  /** The sentence the reader is shown. Isolated from the rest of the card because the card grows
+      a response history and the statement must not, which is the §18 assertion. */
+  readonly claimStatement: "[data-mirror-claim-statement]";
+  /** The §17 record of what the reader answered. Appends only. */
+  readonly claimHistory: "[data-mirror-claim-history]";
   /** Accurate / Wrong / More complicated (§17). */
   readonly response: "[data-mirror-response]";
   /** The control that opens a claim's derivation. Matching on its label would break on a copy

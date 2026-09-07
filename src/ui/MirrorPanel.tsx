@@ -101,7 +101,9 @@ function ClaimCard({
       data-confidence={claim.confidence}
     >
       <div className="mirror-claim__head">
-        <p className="mirror-claim__statement">{claim.statement}</p>
+        <p className="mirror-claim__statement" data-mirror-claim-statement>
+          {claim.statement}
+        </p>
         <span className="mirror-claim__confidence" data-confidence={claim.confidence}>
           {claim.confidence} confidence
         </span>
@@ -199,7 +201,7 @@ function ClaimCard({
             <p className="mirror-claim__history-lead">
               Your response has been attached to the inference.
             </p>
-            <ol className="mirror-claim__history-list">
+            <ol className="mirror-claim__history-list" data-mirror-claim-history>
               {responses.map((response) => (
                 <li key={response.id}>
                   You marked this <strong>{RESPONSE_LABELS[response.response]}</strong>. The claim,
